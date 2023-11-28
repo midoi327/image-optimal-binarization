@@ -10,15 +10,15 @@ import os
 from tqdm import tqdm
 
 
-class BestPSNR:
+class BestImage:
     def __init__(self, input_folder, target_folder, output_folder):
         
         self.input_folder = input_folder
         self.target_folder = target_folder
         self.output_folder = output_folder
         self.invert_counts = 0
-        self.best_psnr = 16
-        self.best_ssim = 0.8
+        self.best_psnr = 10
+        self.best_ssim = 0.5
         self.best_params = {}
         self.input_image = None
 
@@ -110,17 +110,17 @@ class BestPSNR:
         image_files = os.listdir(self.input_folder)
         self.input_image = cv2.imread(os.path.join(self.input_folder, image_files[0]))
 
-        # self.input_image = self.invert_colors(self.input_image) # 이미지에 따라 선택 적용
+        # self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
         
         count = 0 # 몇 번 갱신되었는가 
         
-        for brightness in tqdm(range(-100, 100, 5), desc='Finding PSNR SSIM Loop'): # 밝기조절
+        for brightness in tqdm(range(-100, 100, 10), desc=f'Finding PSNR SSIM Loop', leave=True): # 밝기조절
             for contrast in np.arange(1, 2.1, 0.5): # 대비조절
-                for threshold in range(50, 150, 10): # 이진화 조절
-                    for morph in np.arange(1, 10, 1): # 모폴로지 조절
+                for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False): # 이진화 조절
+                    for morph in np.arange(1, 10, 2): # 모폴로지 조절
                         try:
                             enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
-                            psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image1.png') # target 이미지 
+                            psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image4.png') # ////////////////////target 이미지 
                             
                             if psnr_value > self.best_psnr and ssim_value > self.best_ssim : # 기준 psnr:16, ssim:0.8 이상
                                 count += 1
@@ -143,5 +143,5 @@ target_folder = './target'
 output_folder = './output'
 
 
-best_instance = BestPSNR(input_folder, target_folder, output_folder)
+best_instance = BestImage(input_folder, target_folder, output_folder)
 best_instance.find_best_image()

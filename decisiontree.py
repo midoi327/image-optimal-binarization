@@ -21,9 +21,9 @@ class BestImage:
         self.target_folder = target_folder
         self.output_folder = output_folder
         self.invert_counts = 0
-        self.best_psnr = 10
-        self.best_ssim = 0.5
-        self.best_params = {}
+        self.best_psnr = 16.5
+        self.best_ssim = 0.8
+        self.best_params = []
         self.input_image = None
 
     def display_image(self, image):
@@ -108,14 +108,14 @@ class BestImage:
         enhanced_image = self.remove_small_noise(enhanced_image, diameter_threshold_mm=morph)
         return enhanced_image
 
-
     def visualize_decision_tree(self, tree, feature_names):
         dot_data = export_graphviz(tree, out_file=None,
                                    filled=True, rounded=True,
                                    special_characters=True, feature_names=feature_names)
         graph = graphviz.Source(dot_data)
         graph.render('decision_tree', format='png', cleanup=False)
-        # display(Image.open('decision_tree.png'))
+        
+        
         
     def decision_tree(self):
         
@@ -124,13 +124,12 @@ class BestImage:
         self.input_image = cv2.imread(os.path.join(self.input_folder, image_files[0]))
         print(f'Input Image is {image_files[0]}. Processing Data...')
 
-        self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
+        # self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
 
         # 특징벡터 생성
         X = []
         y_psnr = []
         y_ssim = []
-        point = []
 
         for brightness in tqdm(range(-100, 100, 10), desc=f'Collecting Data', leave=True):
             for contrast in np.arange(1, 2.1, 0.5):
@@ -142,47 +141,60 @@ class BestImage:
                         X.append([brightness, threshold, contrast, morph])
                         y_psnr.append(psnr_value.item())
                         y_ssim.append(ssim_value.item())
-                        point.append(0.7*psnr_value.item() + 0.3*ssim_value.item())
                             
                             
                                 
         # 결정나무 훈련
-        tree = DecisionTreeRegressor()
-        
-        X = np.array(X)
-        point = np.array(point)
-        
-        tree.fit(X, point)
+        tree_psnr = DecisionTreeRegressor()
+        tree_ssim = DecisionTreeRegressor()
 
-        # 베스트 파라미터 찾기
+        X = np.array(X)
+        y_psnr = np.array(y_psnr)
+        y_ssim = np.array(y_ssim)
+
+        tree_psnr.fit(X, y_psnr)
+        tree_ssim.fit(X, y_ssim)
+
+        # 평가지표 별 베스트 파라미터 찾기
         
         print(f'Collected {len(X)} Data...\n')
-        print('predict value of ''tree''')
-        print(tree.predict(X))
+        print('predict value of ''tree_psnr''')
+        print(tree_psnr.predict(X))
+        print('predict value of ''tree_ssim''')
+        print(tree_ssim.predict(X))
         print()
+
+        # 예측값 얻기
+        predicted_psnr = tree_psnr.predict(X)
+        predicted_ssim = tree_ssim.predict(X)
         
-        print(f'best point : {np.max(tree.predict(X)):.3f}')
-        
-        best_index = np.argmax(tree.predict(X))
-
-        self.best_params['brightness'] = X[best_index, 0]
-        self.best_params['threshold'] = X[best_index, 1]
-        self.best_params['contrast'] = X[best_index, 2]
-        self.best_params['morph'] = X[best_index, 3]
-
-
-        print(f'Best parameters result: {self.best_params}')
+        print(f'best psnr: {np.max(tree_psnr.predict(X)):.3f}, best ssim: {np.max(tree_ssim.predict(X)):.3f}')
         
         
-        # 결정 트리 시각화
-        feature_names = ['brightness', 'threshold', 'contrast', 'morph']
+        # 조건을 만족하는 예측값 필터링
+        condition = (predicted_psnr >= self.best_psnr) & (predicted_ssim >= self.best_ssim) # len(condition) = 4500
+        filtered_data = X[condition]
+        filtered_psnr = predicted_psnr[condition]
+        filtered_ssim = predicted_ssim[condition]
 
-        self.visualize_decision_tree(tree, feature_names)
+        for brightness, threshold, contrast, morph in filtered_data:
+            self.best_params.append({'brightness':brightness, 'threshold':threshold, 'contrast':contrast, 'morph': morph})
+
+        print(f'조건을 만족하는 {len(self.best_params)}개의 데이터가 있습니다.\n')
+
+
+
 
         # 베스트 결과 이미지 저장
-        best_image = self.enhance_image(brightness=self.best_params['brightness'], threshold=self.best_params['threshold'], contrast=self.best_params['contrast'], morph=int(self.best_params['morph']))
- 
-        self.save_image(image = best_image, filename='best_image', count=1)
+        for i in range(1, len(self.best_params)+1):
+            best_image = self.enhance_image(brightness=self.best_params[i-1]['brightness'], threshold=self.best_params[i-1]['threshold'], contrast=self.best_params[i-1]['contrast'], morph=int(self.best_params[i-1]['morph']))
+            self.save_image(image = best_image, filename=f"{image_files[0].replace('.png', '')}_{i}", count=i)
+            print(f"** {i}번째 점수: psnr: {filtered_psnr[i-1]:.3f}, ssim: {filtered_ssim[i-1]:.3f}, 파라미터: brightness:{self.best_params[i-1]['brightness']}, threshold:{self.best_params[i-1]['threshold']}, contrast:{self.best_params[i-1]['contrast']}, morph:{self.best_params[i-1]['morph']}")
+            # 결정 트리 시각화
+            # feature_names = ['brightness', 'threshold', 'contrast', 'morph']
+            # self.visualize_decision_tree(tree_psnr, feature_names)
+            # self.visualize_decision_tree(tree_ssim, feature_names) 
+            
 
 
 

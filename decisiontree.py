@@ -21,7 +21,7 @@ class BestImage:
         self.target_folder = target_folder
         self.output_folder = output_folder
         self.invert_counts = 0
-        self.best_psnr = 17
+        self.best_psnr = 13
         self.best_ssim = 0.8
         self.best_params = []
         self.input_image = None
@@ -124,7 +124,7 @@ class BestImage:
         self.input_image = cv2.imread(os.path.join(self.input_folder, image_files[0]))
         print(f'Input Image is {image_files[0]}. Processing Data...')
 
-        # self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
+        self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
 
         # 특징벡터 생성
         X = []
@@ -136,7 +136,7 @@ class BestImage:
                 for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False):
                     for morph in np.arange(1, 10, 2):
                         enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
-                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image2.png')
+                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image1.png')
 
                         X.append([brightness, threshold, contrast, morph])
                         y_psnr.append(psnr_value.item())

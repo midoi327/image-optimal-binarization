@@ -115,9 +115,9 @@ class BestImage:
                                    special_characters=True, feature_names=feature_names)
         graph = graphviz.Source(dot_data)
         graph.render('decision_tree', format='png', cleanup=False)
-        display(Image.open('decision_tree.png'))
+        # display(Image.open('decision_tree.png'))
         
-    def find_best_image_with_decision_tree(self):
+    def decision_tree(self):
         
         # 폴더 내 첫 번째 이미지 선택
         image_files = os.listdir(self.input_folder)
@@ -130,55 +130,46 @@ class BestImage:
         X = []
         y_psnr = []
         y_ssim = []
-        
+        point = []
 
         for brightness in tqdm(range(-100, 100, 10), desc=f'Collecting Data', leave=True):
             for contrast in np.arange(1, 2.1, 0.5):
                 for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False):
                     for morph in np.arange(1, 10, 2):
                         enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
-                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image3.png')
+                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image2.png')
 
                         X.append([brightness, threshold, contrast, morph])
                         y_psnr.append(psnr_value.item())
                         y_ssim.append(ssim_value.item())
+                        point.append(0.7*psnr_value.item() + 0.3*ssim_value.item())
                             
                             
                                 
         # 결정나무 훈련
-        tree_psnr = DecisionTreeRegressor(min_samples_split=60)
-        tree_ssim = DecisionTreeRegressor(min_samples_split=60)
-
+        tree = DecisionTreeRegressor()
+        
         X = np.array(X)
-        y_psnr = np.array(y_psnr)
-        y_ssim = np.array(y_ssim)
-
-        tree_psnr.fit(X, y_psnr)
-        tree_ssim.fit(X, y_ssim)
+        point = np.array(point)
+        
+        tree.fit(X, point)
 
         # 베스트 파라미터 찾기
         
         print(f'Collected {len(X)} Data...\n')
-        print('predict value of ''tree_psnr''')
-        print(tree_psnr.predict(X))
-        print('predict value of ''tree_ssim''')
-        print(tree_ssim.predict(X))
+        print('predict value of ''tree''')
+        print(tree.predict(X))
         print()
         
-        print(f'best psnr: {np.max(tree_psnr.predict(X))}, best ssim: {np.max(tree_ssim.predict(X))}')
+        print(f'best point : {np.max(tree.predict(X)):.3f}')
         
-        best_psnr_index = np.argmax(tree_psnr.predict(X))
-        best_ssim_index = np.argmax(tree_ssim.predict(X))
+        best_index = np.argmax(tree.predict(X))
 
-        self.best_params['brightness_psnr'] = X[best_psnr_index, 0]
-        self.best_params['threshold_psnr'] = X[best_psnr_index, 1]
-        self.best_params['contrast_psnr'] = X[best_psnr_index, 2]
-        self.best_params['morph_psnr'] = X[best_psnr_index, 3]
+        self.best_params['brightness'] = X[best_index, 0]
+        self.best_params['threshold'] = X[best_index, 1]
+        self.best_params['contrast'] = X[best_index, 2]
+        self.best_params['morph'] = X[best_index, 3]
 
-        self.best_params['brightness_ssim'] = X[best_ssim_index, 0]
-        self.best_params['threshold_ssim'] = X[best_ssim_index, 1]
-        self.best_params['contrast_ssim'] = X[best_ssim_index, 2]
-        self.best_params['morph_ssim'] = X[best_ssim_index, 3]
 
         print(f'Best parameters result: {self.best_params}')
         
@@ -186,15 +177,14 @@ class BestImage:
         # 결정 트리 시각화
         feature_names = ['brightness', 'threshold', 'contrast', 'morph']
 
-        self.visualize_decision_tree(tree_psnr, feature_names)
-        self.visualize_decision_tree(tree_ssim, feature_names)
+        self.visualize_decision_tree(tree, feature_names)
 
         # 베스트 결과 이미지 저장
-        best_image_psnr = self.enhance_image(brightness=self.best_params['brightness_psnr'], threshold=self.best_params['threshold_psnr'], contrast=self.best_params['contrast_psnr'], morph=int(self.best_params['morph_psnr']))
-        best_image_ssim = self.enhance_image(brightness=self.best_params['brightness_ssim'], threshold=self.best_params['threshold_ssim'], contrast=self.best_params['contrast_ssim'], morph=int(self.best_params['morph_ssim']))
+        best_image = self.enhance_image(brightness=self.best_params['brightness'], threshold=self.best_params['threshold'], contrast=self.best_params['contrast'], morph=int(self.best_params['morph']))
+ 
+        self.save_image(image = best_image, filename='best_image', count=1)
 
-        self.save_image(image = best_image_psnr, filename='best_psnr_image', count=0)
-        self.save_image(image = best_image_ssim, filename='best_ssim_image', count=0)
+
 
 
 
@@ -205,4 +195,4 @@ target_folder = './target'
 output_folder = './output'
 
 best_instance = BestImage(input_folder, target_folder, output_folder)
-best_instance.find_best_image_with_decision_tree()
+best_instance.decision_tree()

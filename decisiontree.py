@@ -9,8 +9,10 @@ import torch.nn as nn
 import os
 from tqdm import tqdm
 from sklearn.tree import DecisionTreeRegressor
-
-
+from sklearn.tree import export_graphviz
+import pydotplus
+from IPython.display import display
+import graphviz
 
 class BestImage:
     def __init__(self, input_folder, target_folder, output_folder):
@@ -107,6 +109,14 @@ class BestImage:
         return enhanced_image
 
 
+    def visualize_decision_tree(self, tree, feature_names):
+        dot_data = export_graphviz(tree, out_file=None,
+                                   filled=True, rounded=True,
+                                   special_characters=True, feature_names=feature_names)
+        graph = graphviz.Source(dot_data)
+        graph.render('decision_tree', format='png', cleanup=False)
+        display(Image.open('decision_tree.png'))
+        
     def find_best_image_with_decision_tree(self):
         
         # 폴더 내 첫 번째 이미지 선택
@@ -114,20 +124,20 @@ class BestImage:
         self.input_image = cv2.imread(os.path.join(self.input_folder, image_files[0]))
         print(f'Input Image is {image_files[0]}. Processing Data...')
 
-        # self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
+        self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
 
-        # Extract features and labels
+        # 특징벡터 생성
         X = []
         y_psnr = []
         y_ssim = []
-
+        
 
         for brightness in tqdm(range(-100, 100, 10), desc=f'Collecting Data', leave=True):
             for contrast in np.arange(1, 2.1, 0.5):
                 for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False):
                     for morph in np.arange(1, 10, 2):
                         enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
-                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image2.png')
+                        psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image3.png')
 
                         X.append([brightness, threshold, contrast, morph])
                         y_psnr.append(psnr_value.item())
@@ -135,9 +145,9 @@ class BestImage:
                             
                             
                                 
-        # Train decision tree models
-        tree_psnr = DecisionTreeRegressor()
-        tree_ssim = DecisionTreeRegressor()
+        # 결정나무 훈련
+        tree_psnr = DecisionTreeRegressor(min_samples_split=60)
+        tree_ssim = DecisionTreeRegressor(min_samples_split=60)
 
         X = np.array(X)
         y_psnr = np.array(y_psnr)
@@ -146,7 +156,7 @@ class BestImage:
         tree_psnr.fit(X, y_psnr)
         tree_ssim.fit(X, y_ssim)
 
-        # Find best parameters using decision trees
+        # 베스트 파라미터 찾기
         
         print(f'Collected {len(X)} Data...\n')
         print('predict value of ''tree_psnr''')
@@ -171,11 +181,20 @@ class BestImage:
         self.best_params['morph_ssim'] = X[best_ssim_index, 3]
 
         print(f'Best parameters result: {self.best_params}')
+        
+        
+        # 결정 트리 시각화
+        feature_names = ['brightness', 'threshold', 'contrast', 'morph']
 
+        self.visualize_decision_tree(tree_psnr, feature_names)
+        self.visualize_decision_tree(tree_ssim, feature_names)
 
         # 베스트 결과 이미지 저장
-        
+        best_image_psnr = self.enhance_image(brightness=self.best_params['brightness_psnr'], threshold=self.best_params['threshold_psnr'], contrast=self.best_params['contrast_psnr'], morph=int(self.best_params['morph_psnr']))
+        best_image_ssim = self.enhance_image(brightness=self.best_params['brightness_ssim'], threshold=self.best_params['threshold_ssim'], contrast=self.best_params['contrast_ssim'], morph=int(self.best_params['morph_ssim']))
 
+        self.save_image(image = best_image_psnr, filename='best_psnr_image', count=0)
+        self.save_image(image = best_image_ssim, filename='best_ssim_image', count=0)
 
 
 

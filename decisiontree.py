@@ -21,7 +21,7 @@ class BestImage:
         self.target_folder = target_folder
         self.output_folder = output_folder
         self.invert_counts = 0
-        self.best_psnr = 16.5
+        self.best_psnr = 17
         self.best_ssim = 0.8
         self.best_params = []
         self.input_image = None
@@ -108,12 +108,12 @@ class BestImage:
         enhanced_image = self.remove_small_noise(enhanced_image, diameter_threshold_mm=morph)
         return enhanced_image
 
-    def visualize_decision_tree(self, tree, feature_names):
+    def visualize_decision_tree(self, tree, feature_names, filename='decision tree'):
         dot_data = export_graphviz(tree, out_file=None,
                                    filled=True, rounded=True,
                                    special_characters=True, feature_names=feature_names)
         graph = graphviz.Source(dot_data)
-        graph.render('decision_tree', format='png', cleanup=False)
+        graph.render(filename, format='png', cleanup=False)
         
         
         
@@ -190,10 +190,20 @@ class BestImage:
             best_image = self.enhance_image(brightness=self.best_params[i-1]['brightness'], threshold=self.best_params[i-1]['threshold'], contrast=self.best_params[i-1]['contrast'], morph=int(self.best_params[i-1]['morph']))
             self.save_image(image = best_image, filename=f"{image_files[0].replace('.png', '')}_{i}", count=i)
             print(f"** {i}번째 점수: psnr: {filtered_psnr[i-1]:.3f}, ssim: {filtered_ssim[i-1]:.3f}, 파라미터: brightness:{self.best_params[i-1]['brightness']}, threshold:{self.best_params[i-1]['threshold']}, contrast:{self.best_params[i-1]['contrast']}, morph:{self.best_params[i-1]['morph']}")
-            # 결정 트리 시각화
-            # feature_names = ['brightness', 'threshold', 'contrast', 'morph']
-            # self.visualize_decision_tree(tree_psnr, feature_names)
-            # self.visualize_decision_tree(tree_ssim, feature_names) 
+        
+        
+        
+        
+        # 결정 트리 시각화
+        feature_names = ['brightness', 'threshold', 'contrast', 'morph']
+        i = int(input('\n트리를 저장하려면 1을 입력하세요. 저장하지 않으려면 0을 입력하세요.'))
+        
+        if i == 0:
+            print('트리를 저장하지 않고 시스템을 종료합니다.')
+        else:
+            self.visualize_decision_tree(tree_psnr, feature_names, filename='PSNR decision tree')
+            self.visualize_decision_tree(tree_ssim, feature_names, filename='SSIM decision tree') 
+            print('트리를 저장하고 시스템을 종료합니다.')
             
 
 

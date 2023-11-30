@@ -17,7 +17,7 @@ class BestImage:
         self.target_folder = target_folder
         self.output_folder = output_folder
         self.invert_counts = 0
-        self.best_psnr = 10
+        self.best_psnr = 15
         self.best_ssim = 0.5
         self.best_params = {}
         self.input_image = None
@@ -106,38 +106,50 @@ class BestImage:
 
     def find_best_image(self):
         
-        # 폴더 내 첫 번째 이미지 선택
-        image_files = os.listdir(self.input_folder)
-        self.input_image = cv2.imread(os.path.join(self.input_folder, image_files[0]))
-
-        # self.input_image = self.invert_colors(self.input_image) # //////////////////////////////////////////////이미지에 따라 선택 적용
+        # 폴더 내 이미지 선택
+        image_files = sorted(os.listdir(self.input_folder))
+        print(f'Collected {len(image_files)} Data..\n')
         
-        count = 0 # 몇 번 갱신되었는가 
-        
-        for brightness in tqdm(range(-100, 100, 10), desc=f'Finding PSNR SSIM Loop', leave=True): # 밝기조절
-            for contrast in np.arange(1, 2.1, 0.5): # 대비조절
-                for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False): # 이진화 조절
-                    for morph in np.arange(1, 10, 2): # 모폴로지 조절
-                        try:
-                            enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
-                            psnr_value, ssim_value = self.psnr_ssim(enhanced_image, '/home/piai/문서/miryeong/Algorithm_1/target/saved_image4.png') # ////////////////////target 이미지 
-                            
-                            if psnr_value > self.best_psnr and ssim_value > self.best_ssim : # 기준 psnr:16, ssim:0.8 이상
-                                count += 1
+        for f in image_files:
+
+            self.input_image = cv2.imread(os.path.join(self.input_folder, f))
+            print(f'Input Image is {f}. Processing...')
+            
+            inv = int(input('Input Image 색 반전이 필요하면 1을 입력하세요. 필요없다면 0을 입력하세요.'))
+            if inv == 1:
+                self.input_image = self.invert_colors(self.input_image) 
+            
+            self.best_psnr = float(input('PSNR 기준 점수를 입력하세요 : '))
+            self.best_ssim = float(input('SSIM 기준 점수를 입력하세요 : '))
+            
+            count = 0 # 베스트 이미지가 몇 번 갱신되었는가 
+            self.best_params = {} # 파라미터 초기화
+            
+            for brightness in tqdm(range(-100, 100, 10), desc=f'Collecting Data', leave=True): # 밝기조절
+                for contrast in np.arange(1, 2.1, 0.5): # 대비조절
+                    for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False): # 이진화 조절
+                        for morph in np.arange(1, 10, 2): # 모폴로지 조절
+                            try:
+                                enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
+                                psnr_value, ssim_value = self.psnr_ssim(enhanced_image, os.path.join(self.target_folder, f)) # ////////////////////target 이미지 
                                 
-                                self.best_psnr = psnr_value 
-                                self.best_ssim = ssim_value
-                                self.best_params = {'brightness': brightness, 'threshold': threshold, 'contrast': contrast, 'morph': morph}
-                                print(f'*********psnr :{self.best_psnr:.3f}, ssim: {self.best_ssim:.3f} with {self.best_params}')
-                                self.save_image(image=enhanced_image, filename='result_image', count = count)
-                                
-                        except Exception as e:
-                            print(f'Exception occurred: {e}')
+                                if psnr_value > self.best_psnr and ssim_value > self.best_ssim : 
+                                    count += 1
+                                    
+                                    self.best_psnr = psnr_value 
+                                    self.best_ssim = ssim_value
+                                    self.best_params = {'brightness': brightness, 'threshold': threshold, 'contrast': contrast, 'morph': morph}
+                                    
+                                    print(f'**{count}번째 이미지 psnr :{self.best_psnr:.3f}, ssim: {self.best_ssim:.3f} with {self.best_params}')
+                                    self.save_image(image=enhanced_image, filename= f.replace('.png', ''), count = count)
+                                    
+                            except Exception as e:
+                                print(f'Exception occurred: {e}')
 
-        print(f'Final result: best_psnr={self.best_psnr:.3f}, ssim: {self.best_ssim:.3f}, best_params={self.best_params}')
+            print(f'{f} result: best_psnr={self.best_psnr:.3f}, best_ssim: {self.best_ssim:.3f}, best_params={self.best_params}\n\n')
 
 
-# 예제 사용
+
 input_folder = './input'
 target_folder = './target'
 output_folder = './output'

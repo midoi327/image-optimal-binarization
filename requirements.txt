@@ -1,0 +1,13 @@
+opencv-python
+numpy
+matplotlib
+PIL
+torchvision
+piq
+torch
+torch.nn
+tqdm
+sklearn
+pydotplus
+IPython
+graphviz

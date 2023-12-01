@@ -7,7 +7,7 @@ piq
 torch
 torch.nn
 tqdm
-sklearn
+scikit-learn
 pydotplus
 IPython
 graphviz

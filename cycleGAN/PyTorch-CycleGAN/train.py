@@ -19,16 +19,16 @@ from utils import weights_init_normal
 from datasets import ImageDataset
 
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
-parser.add_argument('--n_epochs', type=int, default=100, help='number of epochs of training')
-parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
+parser.add_argument('--n_epochs', type=int, default=502, help='number of epochs of training')
+parser.add_argument('--batchSize', type=int, default=2, help='size of the batches')
 parser.add_argument('--dataroot', type=str, default='datasets/shoeprint/', help='root directory of the dataset')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
-parser.add_argument('--decay_epoch', type=int, default=50, help='epoch to start linearly decaying the learning rate to 0')
-parser.add_argument('--size', type=int, default=512, help='size of the data crop (squared assumed)')
+parser.add_argument('--decay_epoch', type=int, default=200, help='epoch to start linearly decaying the learning rate to 0')
+parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
 parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
@@ -106,6 +106,7 @@ logger = Logger(opt.n_epochs, len(dataloader))
 ###### Training ######
 for epoch in range(opt.epoch, opt.n_epochs):
     for i, batch in enumerate(dataloader):
+        
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
         real_B = Variable(input_B.copy_(batch['B']))
@@ -192,9 +193,11 @@ for epoch in range(opt.epoch, opt.n_epochs):
     lr_scheduler_D_A.step()
     lr_scheduler_D_B.step()
 
-    # Save models checkpoints
-    torch.save(netG_A2B.state_dict(), 'output/netG_A2B.pth')
-    torch.save(netG_B2A.state_dict(), 'output/netG_B2A.pth')
-    torch.save(netD_A.state_dict(), 'output/netD_A.pth')
-    torch.save(netD_B.state_dict(), 'output/netD_B.pth')
+    if epoch % 50 == 0:
+        # Save models checkpoints
+        print('모델을 저장합니다.\n')
+        torch.save(netG_A2B.state_dict(), f'output/netG_A2B_reszied_2_256_500_{epoch}.pth')
+        # torch.save(netG_B2A.state_dict(), f'output/netG_B2A_500_{epoch}.pth')
+        # torch.save(netD_A.state_dict(), 'output/netD_A.pth')
+        # torch.save(netD_B.state_dict(), 'output/netD_B.pth')
 ###################################

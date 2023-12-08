@@ -19,16 +19,17 @@ parser.add_argument('--batchSize', type=int, default=1, help='size of the batche
 parser.add_argument('--dataroot', type=str, default='datasets/shoeprint/', help='root directory of the dataset')
 parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
-parser.add_argument('--size', type=int, default=256, help='size of the data (squared assumed)')
+parser.add_argument('--size', type=int, default=128, help='size of the data (squared assumed)')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
 parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
-parser.add_argument('--generator_A2B', type=str, default='output/netG_A2B.pth', help='A2B generator checkpoint file')
-parser.add_argument('--generator_B2A', type=str, default='output/netG_B2A.pth', help='B2A generator checkpoint file')
+parser.add_argument('--generator_A2B', type=str, default='output/netG_A2B_1_256_500_400.pth', help='A2B generator checkpoint file')
+parser.add_argument('--generator_B2A', type=str, default='output/netG_B2A_300.pth', help='B2A generator checkpoint file')
 opt = parser.parse_args()
-print(opt)
+# print(opt)
 
-if torch.cuda.is_available() and not opt.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+
+# if torch.cuda.is_available() and not opt.cuda:
+#     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 ###### Definition of variables ######
 # Networks
@@ -70,7 +71,7 @@ print('데이터 로드 완료')
 #     print(f"Batch {i + 1}:")
 #     print("Input shape:", batch['A'].shape) # [1, 3, 2453, 234]
 #     print("Target shape:", batch['B'].shape) # [1, 3, 234, 253]
-###################################
+##################################
 
 ###### Testing######
 
@@ -95,21 +96,21 @@ for i, batch in enumerate(dataloader): # 10개의 batch
     # batch['B'] = resize_transform(batch['B']) 
         
     print('A:', batch['A'].shape) # [1, 3, 256, 256] 나와야 함
-    # print('B:', batch['B'].shape)
+    print('B:', batch['B'].shape)
     
     # Set model input
     # real_A = Variable(input_A.copy_(batch['A']))
     # real_B = Variable(input_B.copy_(batch['B']))
     
     real_A = batch['A'].to(device = 'cpu')
-    real_B = batch['B'].to(device = 'cpu')
+    # real_B = batch['B'].to(device = 'cpu')
 
     # Generate output
     fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
-    fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
+    # fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
 
     # Save image files
-    save_image(fake_A, 'output/A/%04d.png' % (i+1))
+    # save_image(fake_A, 'output/A/%04d.png' % (i+1))
     save_image(fake_B, 'output/B/%04d.png' % (i+1))
 
     sys.stdout.write('\rGenerated images %04d of %04d' % (i+1, len(dataloader)))

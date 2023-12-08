@@ -128,7 +128,7 @@ class BestImage:
             for brightness in tqdm(range(-100, 100, 10), desc=f'Collecting Data', leave=True): # 밝기조절
                 for contrast in np.arange(1, 2.1, 0.5): # 대비조절
                     for threshold in tqdm(range(50, 200, 10), desc='이진화', leave=False): # 이진화 조절
-                        for morph in np.arange(1, 10, 2): # 모폴로지 조절
+                        for morph in np.arange(3, 10, 2): # 모폴로지 조절
                             try:
                                 enhanced_image = self.enhance_image(brightness, threshold, contrast, morph)
                                 psnr_value, ssim_value = self.psnr_ssim(enhanced_image, os.path.join(self.target_folder, f)) # ////////////////////target 이미지 

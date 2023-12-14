@@ -23,12 +23,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
-parser.add_argument('--n_epochs', type=int, default=402, help='number of epochs of training')
+parser.add_argument('--n_epochs', type=int, default=502, help='number of epochs of training')
 parser.add_argument('--batchSize', type=int, default=2, help='size of the batches')
 parser.add_argument('--dataroot', type=str, default='datasets/shoeprint/', help='root directory of the dataset')
 parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=200, help='epoch to start linearly decaying the learning rate to 0')
-parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
+parser.add_argument('--size', type=int, default=512, help='size of the data crop (squared assumed)')
 parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
 parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
 parser.add_argument('--cuda', action='store_true', help='use GPU computation')
@@ -93,7 +93,7 @@ transforms_ = [ transforms.Resize(int(opt.size*1.12), Image.BICUBIC),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-dataloader = DataLoader(ImageDataset(opt.dataroot, transforms_=transforms_, unaligned=True),  # train, test 데이터셋 폴더 경로 수정하려면 ImageDataSet에서 
+dataloader = DataLoader(ImageDataset(opt.dataroot, transforms_=transforms_, unaligned=True), 
                         batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
 print('데이터 로드 완료')
@@ -196,7 +196,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
     if epoch % 50 == 0:
         # Save models checkpoints
         print('모델을 저장합니다.\n')
-        torch.save(netG_A2B.state_dict(), f'output/netG_A2B_fid300resized_400_{epoch}.pth')
+        torch.save(netG_A2B.state_dict(), f'output/netG_A2B_reszied_2_512_500_{epoch}.pth')
         # torch.save(netG_B2A.state_dict(), f'output/netG_B2A_500_{epoch}.pth')
         # torch.save(netD_A.state_dict(), 'output/netD_A.pth')
         # torch.save(netD_B.state_dict(), 'output/netD_B.pth')
